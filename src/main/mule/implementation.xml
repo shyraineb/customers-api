@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6953a259-b189-4448-83da-a581d6410a39" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="1d55e800-98fe-4efb-855d-d7bb4d892bf6" maxEntries="100" entryTtl="5" entryTtlUnit="HOURS" expirationInterval="5" expirationIntervalUnit="HOURS"/>
+	<flow name="getCustomers" doc:id="70113d98-c501-4938-89b6-811d7fc5f8ab" >
+		<os:retrieve-all doc:name="Retrieve all" doc:id="17d962fb-6685-41ba-a83d-4133e6f21c40" objectStore="Object_store" />
+		<logger level="INFO" doc:name="Logger" doc:id="79577e42-ee87-476b-8042-9e2d82585e3e" />
+		<ee:transform doc:name="Transform Message" doc:id="93c8b3b9-cfa7-491b-99e7-530828748329">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+	</flow>
+	<flow name="getCustomersByID" doc:id="67cbd7af-2cbd-495d-b696-2decbed13f8b" >
+		<os:retrieve doc:name="Retrieve" doc:id="b9e98b73-7ae6-4276-80b5-3d286ff4fdf6" key="#[attributes.uriParams.ID]" objectStore="Object_store">
+			<error-mapping sourceType="OS:KEY_NOT_FOUND" targetType="APIKIT:KEY_NOT_FOUND" />
+			<os:default-value ><![CDATA[#[payload]]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="c3a727ad-2529-4a91-8bd6-91096a3c0f22" message="#[payload]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="21ad34d4-5842-434b-bd6f-b8a5c0e0742d" type="OS:KEY_NOT_FOUND" >
+				<ee:transform doc:name="Copy_of_Transform Message" doc:id="0e3cca43-2890-4c07-a91d-6f344a11078d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Key Not Found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[406]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="postCustomer" doc:id="b24b2053-b82a-4896-af9a-fd93df569208" >
+		<os:store doc:name="Store" doc:id="f35d018f-070f-4c98-9900-7570f8cec6d3" key="#[payload.id]" objectStore="Object_store" />
+		<logger level="INFO" doc:name="Logger" doc:id="2367e782-7ec7-4592-85c6-7b409497f45c" message="#[payload]" />
+	</flow>
+	<flow name="deleteCustomer" doc:id="44f51a81-9f66-403b-b6f8-754dcfb08f48" >
+		<os:remove doc:name="Remove" doc:id="99eb0398-7df4-4fdb-86c8-d2075a193e42" key="#[attributes.uriParams.ID]" objectStore="Object_store"/>
+		<logger level="INFO" doc:name="Logger" doc:id="fe3439ed-a1bd-42a0-9c4d-1658381f0be0" message='#["Deleted"]'/>
+	</flow>
+	<flow name="updateCustomer" doc:id="df266653-126a-4dd7-8b84-485b4a24a586" >
+		<flow-ref doc:name="Delete Flow" doc:id="73b2b62e-366a-4236-8ac8-81b86ae1528e" name="deleteCustomer"/>
+		<flow-ref doc:name="Store Flow" doc:id="30c0d2e6-45f2-4904-8cf8-bc636ad2c3ae" name="postCustomer"/>
+		<logger level="INFO" doc:name="Logger" doc:id="34a82f28-6725-40eb-87b6-ccea1efed863" message='#[payload]' />
+	</flow>
+</mule>
