@@ -19,14 +19,16 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 					<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-payload]]></ee:set-payload>
+payload mapObject ( payload01 , indexOfPayload01 ) -> {
+	airlineName: "American",
+	availableSeats: payload01.state
+} as Object ]]></ee:set-payload>
 				</ee:message>
 			</ee:transform>
 	</flow>
 	<flow name="getCustomersByID" doc:id="67cbd7af-2cbd-495d-b696-2decbed13f8b" >
 		<os:retrieve doc:name="Retrieve" doc:id="b9e98b73-7ae6-4276-80b5-3d286ff4fdf6" key="#[attributes.uriParams.ID]" objectStore="Object_store">
-			<error-mapping sourceType="OS:KEY_NOT_FOUND" targetType="APIKIT:KEY_NOT_FOUND" />
-			<os:default-value ><![CDATA[#[payload]]]></os:default-value>
+			<os:default-value ><![CDATA[#["Key not found."]]]></os:default-value>
 		</os:retrieve>
 		<logger level="INFO" doc:name="Logger" doc:id="c3a727ad-2529-4a91-8bd6-91096a3c0f22" message="#[payload]"/>
 		<error-handler >
@@ -46,16 +48,63 @@ output application/json
 		</error-handler>
 	</flow>
 	<flow name="postCustomer" doc:id="b24b2053-b82a-4896-af9a-fd93df569208" >
-		<os:store doc:name="Store" doc:id="f35d018f-070f-4c98-9900-7570f8cec6d3" key="#[payload.id]" objectStore="Object_store" />
+		<os:store doc:name="Store" doc:id="f35d018f-070f-4c98-9900-7570f8cec6d3" key="#[payload.id]" objectStore="Object_store" failIfPresent="true"/>
 		<logger level="INFO" doc:name="Logger" doc:id="2367e782-7ec7-4592-85c6-7b409497f45c" message="#[payload]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f5e1e927-edb8-461e-8adf-034a65e752ce" type="OS:KEY_ALREADY_EXISTS" >
+				<ee:transform doc:name="Transform Message" doc:id="c95af529-8a0c-465d-a3a7-f8022a1495cf" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Key Already Exists"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[406]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
 	</flow>
 	<flow name="deleteCustomer" doc:id="44f51a81-9f66-403b-b6f8-754dcfb08f48" >
-		<os:remove doc:name="Remove" doc:id="99eb0398-7df4-4fdb-86c8-d2075a193e42" key="#[attributes.uriParams.ID]" objectStore="Object_store"/>
+		<os:remove doc:name="Remove" doc:id="99eb0398-7df4-4fdb-86c8-d2075a193e42" key="#[attributes.uriParams.ID]" objectStore="Object_store">
+			<error-mapping sourceType="OS:INVALID_KEY" targetType="APIKIT:KEY_NOT_FOUND" />
+		</os:remove>
 		<logger level="INFO" doc:name="Logger" doc:id="fe3439ed-a1bd-42a0-9c4d-1658381f0be0" message='#["Deleted"]'/>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="28c48d27-a1d2-412f-8d35-939668c447d8" type="OS:KEY_NOT_FOUND" >
+				<ee:transform doc:name="Transform Message" doc:id="c8954eee-32fc-4ce4-a0c2-5cc515eeedb1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Key Not Found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[406]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
 	</flow>
 	<flow name="updateCustomer" doc:id="df266653-126a-4dd7-8b84-485b4a24a586" >
 		<flow-ref doc:name="Delete Flow" doc:id="73b2b62e-366a-4236-8ac8-81b86ae1528e" name="deleteCustomer"/>
 		<flow-ref doc:name="Store Flow" doc:id="30c0d2e6-45f2-4904-8cf8-bc636ad2c3ae" name="postCustomer"/>
 		<logger level="INFO" doc:name="Logger" doc:id="34a82f28-6725-40eb-87b6-ccea1efed863" message='#[payload]' />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2f59b950-f9b7-4fcd-8dbc-3b7c8cbecf38" type="OS:KEY_NOT_FOUND" >
+				<ee:transform doc:name="Transform Message" doc:id="879b7f12-c9e8-4276-aa0c-4fec2baef4dd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Key Not Found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[406]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
 	</flow>
 </mule>
