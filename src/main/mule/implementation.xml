@@ -37,7 +37,7 @@ var new = {
 }
 ---
 vars.list ++
-"Customer - " ++ payload.firstName ++ " " ++ payload.lastName ++ ", "]]></ee:set-variable>
+"Customer -  " ++ payload.firstName ++ " " ++ payload.lastName ++ ", "]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 			<logger level="INFO" doc:name="Logger" doc:id="1d2e6d85-9b7d-47f5-8ef4-ec3e45c4af99" message="#[payload]"/>
