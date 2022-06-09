@@ -12,21 +12,46 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 	</http:listener-config>
 	<os:object-store name="Object_store" doc:name="Object store" doc:id="1d55e800-98fe-4efb-855d-d7bb4d892bf6" maxEntries="100" entryTtl="5" entryTtlUnit="HOURS" expirationInterval="5" expirationIntervalUnit="HOURS"/>
 	<flow name="getCustomers" doc:id="70113d98-c501-4938-89b6-811d7fc5f8ab" >
-		<os:retrieve-all doc:name="Retrieve all" doc:id="17d962fb-6685-41ba-a83d-4133e6f21c40" objectStore="Object_store" />
-		<logger level="INFO" doc:name="Logger" doc:id="79577e42-ee87-476b-8042-9e2d82585e3e" />
-		<ee:transform doc:name="Transform Message" doc:id="93c8b3b9-cfa7-491b-99e7-530828748329">
+		<os:retrieve-all-keys doc:name="Retrieve all keys" doc:id="13b40671-5c58-407a-ab62-228042293c75" objectStore="Object_store"/>
+		<set-variable value="" doc:name="List" doc:id="e5ddb24d-0ab6-4dfd-b4ef-01d9e9f8700a" variableName="list"/>
+		<foreach doc:name="For Each" doc:id="a969069d-b0cd-454b-b973-733576fb94af" >
+			<set-variable value="#[payload]" doc:name="Key" doc:id="49a5790e-db49-4e76-a9e5-cff82508cbe3" variableName="vKey"/>
+			<os:retrieve doc:name="Retrieve" doc:id="12e9f1b1-46c6-431e-a7eb-a8439e819968" key="#[vars.vKey]" objectStore="Object_store">
+				<os:default-value ><![CDATA[No data.]]></os:default-value>
+			</os:retrieve>
+			<ee:transform doc:name="Update List" doc:id="93c8b3b9-cfa7-491b-99e7-530828748329">
 				<ee:message>
-					<ee:set-payload><![CDATA[%dw 2.0
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="list" ><![CDATA[%dw 2.0
+output application/json
+import java!java::lang::System
+
+var new = {
+    Customer: payload.ID,
+    Details: {
+        Name: payload.firstName,
+        Age: payload.age,
+        Address: payload.address.streetAddress
+	}
+}
+---
+vars.list ++
+"Customer - " ++ payload.firstName ++ " " ++ payload.lastName ++ ", "]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="1d2e6d85-9b7d-47f5-8ef4-ec3e45c4af99" message="#[payload]"/>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="cd654663-8bfd-4a65-936d-37aa86d8c8bc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload mapObject ( payload01 , indexOfPayload01 ) -> {
-	airlineName: "American",
-	availableSeats: payload01.state
-} as Object ]]></ee:set-payload>
-				</ee:message>
-			</ee:transform>
+vars.list]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
-	<flow name="getCustomersByID" doc:id="67cbd7af-2cbd-495d-b696-2decbed13f8b" >
+	<flow name="getCustomerByID" doc:id="67cbd7af-2cbd-495d-b696-2decbed13f8b" >
 		<os:retrieve doc:name="Retrieve" doc:id="b9e98b73-7ae6-4276-80b5-3d286ff4fdf6" key="#[attributes.uriParams.ID]" objectStore="Object_store">
 			<os:default-value ><![CDATA[#["Key not found."]]]></os:default-value>
 		</os:retrieve>
