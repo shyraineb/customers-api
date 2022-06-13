@@ -11,6 +11,9 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
 	<os:object-store name="Object_store" doc:name="Object store" doc:id="1d55e800-98fe-4efb-855d-d7bb4d892bf6" maxEntries="100" entryTtl="5" entryTtlUnit="HOURS" expirationInterval="5" expirationIntervalUnit="HOURS"/>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="5a2cb418-36ec-43e4-a101-57594834cc2c" >
+		<db:generic-connection url="jdbc:postgresql://ec2-52-44-13-158.compute-1.amazonaws.com:5432/dbqo2nk2cap7te?sslmode=require" driverClassName="org.postgresql.Driver" user="ggjzicckmewubd" password="a8b694205d7e8f72f9c08309fab2aab5ff8388ad59a1a56a8803e0591fc3133d" />
+	</db:config>
 	<flow name="getCustomers" doc:id="70113d98-c501-4938-89b6-811d7fc5f8ab" >
 		<os:retrieve-all-keys doc:name="Retrieve all keys" doc:id="13b40671-5c58-407a-ab62-228042293c75" objectStore="Object_store"/>
 		<set-variable value="" doc:name="List" doc:id="e5ddb24d-0ab6-4dfd-b4ef-01d9e9f8700a" variableName="list"/>
@@ -113,6 +116,7 @@ output application/json
 		</error-handler>
 	</flow>
 	<flow name="updateCustomer" doc:id="df266653-126a-4dd7-8b84-485b4a24a586" >
+		<http:listener doc:name="Listener" doc:id="9cce2142-d2f2-40e3-be2d-f6daf56d826b" config-ref="HTTP_Listener_config" path="/post" />
 		<flow-ref doc:name="Delete Flow" doc:id="73b2b62e-366a-4236-8ac8-81b86ae1528e" name="deleteCustomer"/>
 		<flow-ref doc:name="Store Flow" doc:id="30c0d2e6-45f2-4904-8cf8-bc636ad2c3ae" name="postCustomer"/>
 		<logger level="INFO" doc:name="Logger" doc:id="34a82f28-6725-40eb-87b6-ccea1efed863" message='#[payload]' />
@@ -131,5 +135,106 @@ output application/json
 				</ee:transform>
 			</on-error-propagate>
 		</error-handler>
+	</flow>
+	<flow name="getCustomers-db" doc:id="27427cb0-4ae7-4ac8-a45e-0a7c89f8cbbe" >
+		<db:select doc:name="Select" doc:id="304d13e2-cdbb-4f53-afa9-79b31dfdba31" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM customers;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="c5c8dbe8-9113-4270-b728-91ed02854c60" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="postCustomer-db" doc:id="c03b03b9-c18f-437b-bafe-40361e993553" >
+		<db:select doc:name="Select" doc:id="e5bcb163-20d2-4a9e-bccd-32815bb96e85" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM customers;
+INSERT INTO customers (id, first_name, last_name, age, street_address, city_address, state_address, postal_code)
+VALUES (:id, :fname, :lname, :age, :street, :city, :state, :code);]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: payload.id,
+	fname: payload.firstName,
+	lname: payload.lastName,
+	age: payload.age,
+	street: payload.address.streetAddress,
+	city: payload.address.city,
+	state: payload.address.state,
+	code: payload.adress.postalCode
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="95b39eb8-13ef-49e9-a91c-e08a1b6e404f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="updateCustomer-db" doc:id="f589a81d-06cd-4eb8-982e-e2eb87108061" >
+		<db:select doc:name="Select" doc:id="be8b716a-878b-4aac-902c-c410e948ca94" config-ref="Database_Config" >
+			<db:sql ><![CDATA[UPDATE customers SET 
+first_name = :fname,
+last_name = :lname,
+age = :age,
+street_address = :street,
+city_address = :city,
+state_address = :state,
+postal_code = :code
+WHERE id = :id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.queryParams.ID,
+	fname: payload.firstName,
+	lname: payload.lastName,
+	age: payload.age,
+	street: payload.address.streetAddress,
+	city: payload.address.city,
+	state: payload.address.state,
+	code: payload.adress.postalCode
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="191de717-f004-4531-8a31-3bf6b1d4449e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="deleteCustomer-db" doc:id="005deea6-392d-43d5-b25d-4ec040243980" >
+		<db:select doc:name="Select" doc:id="7aad5c56-be40-4172-937e-290b5f2d9674" config-ref="Database_Config" >
+			<db:sql ><![CDATA[DELETE FROM customers where id = :id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.queryParams.ID
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="84fe4d4d-ba69-4701-a414-11c8daa8f339" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getCustomerByID-db" doc:id="c0c9d9b1-911e-477e-bd0a-fb4fad81d30c" >
+		<db:select doc:name="Select" doc:id="8e2c4324-aca7-4be6-9f93-56f135964ac6" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * FROM customers where id = :id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.uriParams.ID
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="3f7b4956-db05-4742-920c-97cc40e3b1a4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>
