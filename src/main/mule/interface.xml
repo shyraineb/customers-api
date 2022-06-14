@@ -124,18 +124,18 @@ output application/json
         </error-handler>
     </flow>
     <flow name="put:\customers\(ID):application\json:customers-api-config">
-		<flow-ref doc:name="updateCustomer" doc:id="712a74c5-8ae5-46d1-99b3-22431612f197" name="updateCustomer"/>
+		<flow-ref doc:name="updateCustomer-db" doc:id="712a74c5-8ae5-46d1-99b3-22431612f197" name="updateCustomer-db"/>
     </flow>
     <flow name="delete:\customers\(ID):customers-api-config">
-		<flow-ref doc:name="deleteCustomer" doc:id="ead736dd-f561-4a6a-81df-76867b2ceb38" name="deleteCustomer"/>
+		<flow-ref doc:name="deleteCustomer-db" doc:id="ead736dd-f561-4a6a-81df-76867b2ceb38" name="deleteCustomer-db"/>
     </flow>
     <flow name="get:\customers:customers-api-config">
-        <flow-ref doc:name="getCustomers" doc:id="7736a6bc-c4c8-41f6-9300-e0d52ec78393" name="getCustomers"/>
+        <flow-ref doc:name="getCustomersDB-db" doc:id="7736a6bc-c4c8-41f6-9300-e0d52ec78393" name="getCustomers-db"/>
     </flow>
     <flow name="get:\customers\(ID):customers-api-config">
-		<flow-ref doc:name="getCustomerByID" doc:id="8dc1b100-8842-4f05-9019-b4585dafbff0" name="getCustomerByID"/>
+		<flow-ref doc:name="getCustomerByID-db" doc:id="8dc1b100-8842-4f05-9019-b4585dafbff0" name="getCustomerByID-db"/>
     </flow>
     <flow name="post:\customers:application\json:customers-api-config">
-        <flow-ref doc:name="postCustomer" doc:id="952767da-cc07-45ef-9b84-5d2631633c47" name="postCustomer"/>
+        <flow-ref doc:name="postCustomer-db" doc:id="952767da-cc07-45ef-9b84-5d2631633c47" name="postCustomer-db"/>
     </flow>
 </mule>

@@ -1,11 +1,9 @@
 {
   "headers": {
-    "host": "localhost:8085",
-    "content-type": "application/json",
-    "content-length": "226"
+    "host": "localhost:8085"
   },
   "clientCertificate": null,
-  "method": "POST",
+  "method": "GET",
   "scheme": "http",
   "queryParams": {},
   "requestUri": "/api/customers",
@@ -18,6 +16,6 @@
   "uriParams": {},
   "rawRequestUri": "/api/customers",
   "rawRequestPath": "/api/customers",
-  "remoteAddress": "/127.0.0.1:55339",
+  "remoteAddress": "/127.0.0.1:52081",
   "requestPath": "/api/customers"
 }
